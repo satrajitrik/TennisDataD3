@@ -1,0 +1,211 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<head>
+<style>
+
+h3 {
+	text-align: center;
+	font-family: sans-serif;
+}
+div, p, ol, li {
+	font-family: sans-serif;
+}
+.axis {
+  font: 10px sans-serif;
+}
+
+.axis path,
+.axis line {
+  fill: none;
+  stroke: #000;
+  shape-rendering: crispEdges;
+}
+</style>
+</head>
+<body>
+	<h3>Satrajit Maitra | 1215097780</h3>
+	<h3>Performance comparison of the Australian Open final matches over a period of 14 years</h3>
+
+<div id="drop" align=center> Select a measure: &nbsp</div>
+<img src="https://static1.squarespace.com/static/5812600c9de4bb662e325d5a/t/5a7e03b071c10b2ebf7ec863/1518207933464/tennisman.gif?format=750w" width="150" height="200"/>
+<script src="http://d3js.org/d3.v3.min.js"></script>
+<script>
+
+var margin = {top: 80, right: 120, bottom: 80, left: 120},
+    width = 900 - margin.left - margin.right,
+    height = 600 - margin.top - margin.bottom;
+
+var svg = d3.select("body").append("svg")
+	.attr("width", width + margin.left + margin.right)
+  .attr("height", height + margin.top + margin.bottom)
+	.append("g")
+    .attr("transform", "translate(" + (margin.left+100) + "," + margin.top + ")");
+
+d3.csv("10years_AusOpen_MaleFinalMatchesDetail.csv", function(error, data){
+
+	var elements = ["total points", "aces", "double faults", "winners", "errors"]
+	var selection = elements[0];
+
+	var y = d3.scale.linear()
+			.domain([0, d3.max(data, function(d){
+				return +d[selection];
+			})])
+			.range([height, 0]);
+
+	var x = d3.scale.ordinal()
+			.domain(data.map(function(d){ return d.year;}))
+			.rangeBands([0, width]);
+
+	var xAxis = d3.svg.axis()
+		.scale(x)
+	    .orient("bottom");
+
+	var yAxis = d3.svg.axis()
+		.scale(y)
+	    .orient("left");
+
+  var z = d3.scale.ordinal()
+      .range(["#393b79", "#637939", "#8c6d31", "#843c39", "#7b4173", "#393b79", "#393b79", "#393b79", "#8c6d31", "#8c6d31", "#8c6d31", "#8c6d31", "#8c6d31", "#393b79", "#393b79"]);
+
+	svg.append("g")
+    	.attr("class", "x axis")
+    	.attr("transform", "translate(0," + height + ")")
+    	.call(xAxis)
+    	.selectAll("text")
+    	.style("font-size", "8px")
+      	.style("text-anchor", "end")
+      	.attr("dx", "-.8em")
+      	.attr("dy", "-.55em")
+      	.attr("transform", "rotate(-90)" );
+
+
+ 	svg.append("g")
+    	.attr("class", "y axis")
+    	.call(yAxis);
+
+	svg.selectAll("rectangle")
+		.data(data)
+		.enter()
+		.append("rect")
+		.attr("class","rectangle")
+		.attr("width", (width - 50)/data.length)
+		.attr("height", function(d){
+			return height - y(+d[selection]);
+		})
+		.attr("x", function(d, i){
+			return ((width / data.length) * i) + 3;
+		})
+		.attr("y", function(d){
+			return y(+d[selection]);
+		})
+		.style("fill", function(d) {
+      return z(d.winner);
+    })
+		.on("mouseover", function(d) {
+				d3.select(this).style("fill", "orange");
+				d3.select(this)
+				.append("title")
+				.text(function(d){
+          console.log(selection);
+          console.log(d[selection]);
+					return "Winner of " + d.year + " : " + d.winner + "\n" + selection + " : " + d[selection];
+				})
+		})
+		.on("mouseout", function(d) {
+				d3.select(this).style("fill", z(d.winner));
+		});
+
+	var selector = d3.select("#drop")
+    	.append("select")
+    	.attr("id","dropdown")
+    	.on("change", function(d){
+        	selection = document.getElementById("dropdown").value;
+
+        	y.domain([0, d3.max(data, function(d) {
+						return +d[selection];
+					})]);
+
+        	yAxis.scale(y);
+
+		    	d3.selectAll(".rectangle")
+		     		.transition()
+		        .attr("height", function(d){
+							return height - y(+d[selection]);
+						})
+						.attr("x", function(d, i){
+							return (width / data.length) * i ;
+						})
+						.attr("y", function(d){
+							return y(+d[selection]);
+						})
+		     		.ease("linear")
+		     		.select("title")
+		     		.text(function(d){
+							console.log(selection);
+		          console.log(d[selection]);
+		     			return "Winner of " + d.year + " : " + d.winner + "\n" + selection + " : " + d[selection];
+		     		});
+
+         	d3.selectAll("g.y.axis")
+         		.transition()
+         		.call(yAxis);
+
+       });
+
+    selector.selectAll("option")
+      .data(elements)
+      .enter().append("option")
+      .attr("value", function(d){
+        return d;
+      })
+      .text(function(d){
+        return d;
+      });
+
+    var winners = ["Roger Federer", "Marat Safin", "Novak Djokovic", "Rafael Nadal", "Stanislas Wawrinka"];
+    var colors = ["#393b79", "#637939", "#8c6d31", "#843c39", "#7b4173"];
+    var legend = svg.append("g")
+        .attr("font-family", "sans-serif")
+        .attr("font-size", 10)
+        .attr("text-anchor", "end")
+        .selectAll("g")
+        .data(winners)
+        .enter()
+        .append("g")
+        .attr("transform", function(d, i) {
+          return "translate(0," + i * 20 + ")";
+        });
+
+
+    legend.append("rect")
+      .attr("x", -54)
+      .attr("width", 19)
+      .attr("height", 19)
+      .attr("fill", function(d, i) {
+        return colors[i];
+      });
+
+    legend.append("text")
+      .attr("x", -60)
+      .attr("y", 9.5)
+      .attr("dy", "0.32em")
+      .text(function(d) {
+        return d;
+      });
+
+});
+
+</script>
+<br>
+<h3>WriteUp:</h3>
+<p>This visualization is designed to provide a clear comparison of all the Australian Open final matches over a period of 14 years (2004 - 2018). The aim is to provide an interactive comparison among all the winners over the respective years. A user can select a measure from a dropdown of 5 measures. Based on the value of each measure, the bar chart changes. This is helpful to track the performance of players who won more than once. eg. It can be seen that Roger Federer is losing points to errors more in the 2017 and 2018 finals than his initial matches in 2004 and 2006.</p>
+<p>Five distinct colors have been used to represent the five winners over the years. </p>
+<p>interactive features of the visualization are:
+	<ol>
+		<li>Measure selector (To view alternate bar charts by changing the measures)</li>
+		<li>Display information on-hover (While hovering over the individual bars, information about the player and the selected measure value are displayed)</li>
+	</ol>
+</p>
+<p><b>Data: </b>The dataset has been modified to include only the final matches from 2004 to 2014. Four additional final match details were added to it.</p>
+<h3> PS: Please use Firefox for viewing :) </h3>
+</body>
